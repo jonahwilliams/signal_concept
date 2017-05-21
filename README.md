@@ -27,7 +27,7 @@ print(sentence.value);
 ```
 
 A Signal without an initial value or a value of null is marked as "cold", and will
-not trigger updates in computations.  As a result, null cannot be used as a regular value inside of signals.  Setting a sinal value to null will once again mark it as "cold".
+not trigger updates in computations.  As a result, null cannot be used as a regular value inside of signals.
 
 ```dart
 var refOne = new SignalRef();
