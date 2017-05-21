@@ -5,7 +5,7 @@ A proof of concept for a Signal (value + changes over time) implementation in Da
 ## Usage
 
 A SignalRef allows you to change the value of a Signal.  A SignalRef can be
-cooerced into a Signal (SignalRef extends Signal).  This distinction is useful because it allows the developer to control what parts of the code can read/write a signal value, and which parts can only read it.
+cooerced into a Signal (SignalRef extends Signal).  This distinction is useful because it allows the developer to control what parts of the code can read/write a signal value and which parts can only read it.
 
 ```dart
 var ref = new SignalRef(value: 2);
@@ -15,7 +15,7 @@ Signal<int> signal = ref;
 ```
 
 New signals can be dervied from existing ones using computeN functions.  Any time the
-value of one of the signal changes, the function will be reevaulated.
+value of one of the signal changes the function will be reevaulated.
 
 ```dart
 var refOne = new SignalRef(value: 3);
@@ -26,8 +26,8 @@ print(sentence.value);
 // => 'HelloHelloHello';
 ```
 
-A Signal without an initial value (or a value of null) is marked as "cold", and will
-not trigger updates in computations.  As a result, Null cannot be used as a regular value inside of signals.  However, setting one to null will once again mark it as "cold".
+A Signal without an initial value or a value of null is marked as "cold", and will
+not trigger updates in computations.  As a result, null cannot be used as a regular value inside of signals.  Setting a sinal value to null will once again mark it as "cold".
 
 ```dart
 var refOne = new SignalRef();
@@ -43,7 +43,7 @@ print(timesResult.value);
 
 ```
 
-If a new value is set which is equal to the old value (using `==`), then the signal does not trigger updates.
+If a signal value is set to something which is equal to the previous value, then the signal does not trigger updates.
 
 ```dart
 var calledCount = 0;
