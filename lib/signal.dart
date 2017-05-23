@@ -29,7 +29,7 @@ abstract class Signal<T> {
   ///
   /// [ignoreFirst] defaults to false and skips any initial updates, since
   /// they can be read from Signal#value.
-  StreamSubscription onChange(void f(T newValue), {bool ignoreFirst: false});
+  StreamSubscription<T> onChange(void f(T newValue), {bool ignoreFirst: false});
 
   /// Cleans up all interal streams and subscriptions.
   void dispose();
@@ -51,10 +51,9 @@ abstract class SignalRef<T> implements Signal<T> {
 class _SyncSignalRef<T> implements SignalRef<T> {
   final _controller = new StreamController<T>.broadcast(sync: true);
 
-  bool _hasInitialized;
   T _value;
 
-  _SyncSignalRef._(this._value) : _hasInitialized = _value != null;
+  _SyncSignalRef._(this._value);
 
   @override
   T get value => _value;
@@ -62,21 +61,21 @@ class _SyncSignalRef<T> implements SignalRef<T> {
   @override
   set value(T newValue) {
     if (newValue != null && newValue != _value) {
-      _hasInitialized = true;
       _value = newValue;
       _controller.add(_value);
     }
   }
 
   @override
-  bool get isHot => _hasInitialized == true;
+  bool get isHot => _value != null;
 
   @override
-  bool get isCold => _hasInitialized == false;
+  bool get isCold => _value == null;
 
   @override
-  StreamSubscription onChange(void f(T newValue), {bool ignoreFirst: false}) {
-    if (_hasInitialized && !ignoreFirst) {
+  StreamSubscription<T> onChange(void f(T newValue),
+      {bool ignoreFirst: false}) {
+    if (isHot && !ignoreFirst) {
       f(_value);
     }
     return _controller.stream.listen(f);
@@ -91,7 +90,7 @@ class _SyncSignalRef<T> implements SignalRef<T> {
   Stream<T> toStream() => _controller.stream;
 
   @override
-  String toString() => 'Signal(${_hasInitialized ? _value : "Uninitialized"})';
+  String toString() => 'Signal($_value)';
 }
 
 class _ConstantSignal<T> implements Signal<T> {
@@ -109,12 +108,12 @@ class _ConstantSignal<T> implements Signal<T> {
   bool get isCold => _value != null;
 
   @override
-  StreamSubscription onChange(f, {bool ignoreFirst}) {
+  StreamSubscription<T> onChange(f, {bool ignoreFirst}) {
     return new Stream.empty().listen(f);
   }
 
   @override
-  String toString() => 'Stream($_value)';
+  String toString() => 'Signal($_value)';
 
   @override
   Stream<T> toStream() => new Stream.empty();
