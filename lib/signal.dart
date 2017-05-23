@@ -109,14 +109,14 @@ class _ConstantSignal<T> implements Signal<T> {
 
   @override
   StreamSubscription<T> onChange(f, {bool ignoreFirst}) {
-    return new Stream.empty().listen(f);
+    return const Stream.empty().listen(f);
   }
 
   @override
   String toString() => 'Signal($_value)';
 
   @override
-  Stream<T> toStream() => new Stream.empty();
+  Stream<T> toStream() => const Stream.empty();
 
   @override
   void dispose() {}
