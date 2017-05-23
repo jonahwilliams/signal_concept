@@ -26,6 +26,46 @@ print(sentence.value);
 // => 'HelloHelloHello';
 ```
 
+Also, here is a neat trick for computations.
+
+```dart
+var refOne = new SignalRef(value: 2);
+var refTwo = new SignalRef(value: 3);
+var refThree = new SignalRef(value: 4);
+var refFour = new SignalRef(value: 5);
+var changeCount = 0;
+
+var computed = computeFour(
+  refOne,
+  refTwo,
+  refThree,
+  refFour,
+  (a, b, c, d) => a + b + c + d,
+);
+
+computed.onChange((_) {
+  changeCount++;
+});
+
+// microtasks are elapsed...
+
+print(changeCount);
+// => 1
+
+refOne.value = 3;
+refTwo.value = -1;
+refThree.value = 9;
+refFour.value = 10;
+
+// microtasks are elapsed...
+
+print(computed.value);
+// => 21
+
+print(changeCount);
+// => 2
+```
+
 A Signal without an initial value or a value of null is marked as "cold", and will
 not trigger updates in computations.  As a result, null cannot be used as a regular value inside of signals.
 
@@ -35,7 +75,7 @@ var refTwo = new SignalRef(value: 2);
 
 var timesResult = computeTwo(refOne, refTwo, (a, b) => a * b);
 print(timesResult.value);
-// => Null
+// => null
 
 refOne.value = 3;
 print(timesResult.value);

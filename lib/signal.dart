@@ -16,8 +16,6 @@ abstract class Signal<T> {
   /// The current value of the signal.
   T get value;
 
-  bool get isSync;
-
   /// Does the signal currently have a value?
   bool get isHot;
 
@@ -42,11 +40,8 @@ abstract class SignalRef<T> implements Signal<T> {
   /// Creates a new [SignalRef].
   ///
   /// Passing no [value] or `null` will create a `cold` signal.
-  factory SignalRef({T value, sync = false}) {
-    if (sync) {
-      return new _SyncSignalRef._(value);
-    }
-    return new _AsyncSignalRef._(value);
+  factory SignalRef({T value}) {
+    return new _SyncSignalRef._(value);
   }
 
   /// Set the value of the signal, triggering updates.
@@ -63,9 +58,6 @@ class _SyncSignalRef<T> implements SignalRef<T> {
 
   @override
   T get value => _value;
-
-  @override
-  bool get isSync => true;
 
   @override
   set value(T newValue) {
@@ -102,58 +94,6 @@ class _SyncSignalRef<T> implements SignalRef<T> {
   String toString() => 'Signal(${_hasInitialized ? _value : "Uninitialized"})';
 }
 
-class _AsyncSignalRef<T> implements SignalRef<T> {
-  final _controller = new StreamController<T>.broadcast();
-
-  bool _hasInitialized;
-  T _value;
-
-  _AsyncSignalRef._(this._value) : _hasInitialized = _value != null;
-
-  @override
-  T get value => _value;
-
-  @override
-  bool get isSync => false;
-
-  @override
-  bool get isHot => _hasInitialized == true;
-
-  @override
-  bool get isCold => _hasInitialized == false;
-
-  @override
-  set value(T newValue) {
-    if (newValue != null && newValue != _value) {
-      _hasInitialized = true;
-      _value = newValue;
-      _controller.add(_value);
-    }
-  }
-
-  @override
-  StreamSubscription onChange(void f(T value), {bool ignoreFirst: false}) {
-    if (_hasInitialized && !ignoreFirst) {
-      f(_value);
-    }
-    return _controller.stream.listen(f);
-  }
-
-  @override
-  Signal<T> toSignal() => this;
-
-  @override
-  Stream<T> toStream() => _controller.stream;
-
-  @override
-  String toString() => 'Signal(${_hasInitialized ? _value : "Uninitialized"})';
-
-  @override
-  void dispose() {
-    _controller.close();
-  }
-}
-
 class _ConstantSignal<T> implements Signal<T> {
   T _value;
 
@@ -161,9 +101,6 @@ class _ConstantSignal<T> implements Signal<T> {
 
   @override
   T get value => _value;
-
-  @override
-  bool get isSync => true;
 
   @override
   bool get isHot => _value != null;
@@ -204,7 +141,7 @@ Signal<D> computeThree<A, B, C, D>(
   Signal<C> signalC,
   C f(A a, B b, C c),
 ) =>
-    _compute([signalA, signalB], f);
+    _compute([signalA, signalB, signalC], f);
 
 /// Create a new [Signal] from four existing signals and a function.
 Signal<E> computeFour<A, B, C, D, E>(
@@ -232,24 +169,30 @@ Signal<B> computeMany<A, B>(List<Signal<A>> signals, B f(List<A> values)) =>
     _compute(signals, f);
 
 Signal<Object> _compute(List<Signal<Object>> signals, Function computation) {
-  var isSync = signals.every((signal) => signal.isSync);
   var allAreHot = signals.every((signal) => signal.isHot);
   Object value;
+  bool hasRunInMicrotask = false;
 
   if (allAreHot) {
     value = Function.apply(
         computation, signals.map((signal) => signal.value).toList());
   }
 
-  var ref = new SignalRef<Object>(value: value, sync: isSync);
+  var ref = new SignalRef<Object>(value: value);
   for (var signal in signals) {
     signal.onChange((_) {
       if (!allAreHot) {
         allAreHot = signals.every((signal) => signal.isHot);
       }
       if (allAreHot) {
-        ref.value = Function.apply(
-            computation, signals.map((signal) => signal.value).toList());
+        if (!hasRunInMicrotask) {
+          hasRunInMicrotask = true;
+          scheduleMicrotask(() {
+            hasRunInMicrotask = false;
+            ref.value = Function.apply(
+                computation, signals.map((signal) => signal.value).toList());
+          });
+        }
       }
     }, ignoreFirst: true);
   }
