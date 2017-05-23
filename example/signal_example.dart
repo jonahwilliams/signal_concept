@@ -4,8 +4,8 @@
 import 'package:signal/signal.dart';
 
 main() {
-  var greeting = new SignalRef(value: "Hello");
-  var timesToRepeat = new SignalRef(value: 2);
+  var greeting = new SignalRef("Hello");
+  var timesToRepeat = new SignalRef(2);
   var separator = new Signal.Constant(' ');
   var sentence = computeThree(
       greeting, separator, timesToRepeat, (a, c, b) => (a + c) * b);

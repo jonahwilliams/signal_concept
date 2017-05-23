@@ -8,7 +8,7 @@ A SignalRef allows you to change the value of a Signal.  A SignalRef can be
 cooerced into a Signal (SignalRef extends Signal).  This distinction is useful because it allows the developer to control what parts of the code can read/write a signal value and which parts can only read it.
 
 ```dart
-var ref = new SignalRef(value: 2);
+var ref = new SignalRef<int>(2);
 ref.value = 3;
 
 Signal<int> signal = ref;
@@ -18,21 +18,23 @@ New signals can be dervied from existing ones using computeN functions.  Any tim
 value of one of the signal changes the function will be reevaulated.
 
 ```dart
-var refOne = new SignalRef(value: 3);
-var refTwo = new SignalRef(value: 'Hello');
+var refOne = new SignalRef(3);
+var refTwo = new SignalRef('Hello');
 var sentence = computeTwo(refOne, refTwo, (a, b) => a * b);
 
 print(sentence.value);
 // => 'HelloHelloHello';
 ```
 
-Also, here is a neat trick for computations.
+Also, here is a neat trick for computations.  Updates to computed values are defered to the
+end of the current microtask queue, allowing us to ensure a maximum of a single update per
+computed value.
 
 ```dart
-var refOne = new SignalRef(value: 2);
-var refTwo = new SignalRef(value: 3);
-var refThree = new SignalRef(value: 4);
-var refFour = new SignalRef(value: 5);
+var refOne = new SignalRef(2);
+var refTwo = new SignalRef(3);
+var refThree = new SignalRef(4);
+var refFour = new SignalRef(5);
 var changeCount = 0;
 
 var computed = computeFour(
@@ -71,7 +73,7 @@ not trigger updates in computations.  As a result, null cannot be used as a regu
 
 ```dart
 var refOne = new SignalRef();
-var refTwo = new SignalRef(value: 2);
+var refTwo = new SignalRef(2);
 
 var timesResult = computeTwo(refOne, refTwo, (a, b) => a * b);
 print(timesResult.value);
@@ -87,7 +89,7 @@ If a signal value is set to something which is equal to the previous value, then
 
 ```dart
 var calledCount = 0;
-var refOne = new SignalRef(value: 2);
+var refOne = new SignalRef(2);
 
 refOne.onChange((_) {
   calledCount++;

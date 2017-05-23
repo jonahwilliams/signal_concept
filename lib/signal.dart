@@ -26,10 +26,7 @@ abstract class Signal<T> {
   Stream<T> toStream();
 
   /// A callback which fires everytime the signal value updates.
-  ///
-  /// [ignoreFirst] defaults to false and skips any initial updates, since
-  /// they can be read from Signal#value.
-  StreamSubscription<T> onChange(void f(T newValue), {bool ignoreFirst: false});
+  StreamSubscription<T> onChange(void f(T newValue));
 
   /// Cleans up all interal streams and subscriptions.
   void dispose();
@@ -40,7 +37,7 @@ abstract class SignalRef<T> implements Signal<T> {
   /// Creates a new [SignalRef].
   ///
   /// Passing no [value] or `null` will create a `cold` signal.
-  factory SignalRef({T value}) {
+  factory SignalRef([T value]) {
     return new _SyncSignalRef._(value);
   }
 
@@ -73,11 +70,7 @@ class _SyncSignalRef<T> implements SignalRef<T> {
   bool get isCold => _value == null;
 
   @override
-  StreamSubscription<T> onChange(void f(T newValue),
-      {bool ignoreFirst: false}) {
-    if (isHot && !ignoreFirst) {
-      f(_value);
-    }
+  StreamSubscription<T> onChange(void f(T newValue)) {
     return _controller.stream.listen(f);
   }
 
@@ -108,7 +101,7 @@ class _ConstantSignal<T> implements Signal<T> {
   bool get isCold => _value != null;
 
   @override
-  StreamSubscription<T> onChange(f, {bool ignoreFirst}) {
+  StreamSubscription<T> onChange(void f(T newValue)) {
     return const Stream.empty().listen(f);
   }
 
@@ -177,7 +170,7 @@ Signal<Object> _compute(List<Signal<Object>> signals, Function computation) {
         computation, signals.map((signal) => signal.value).toList());
   }
 
-  var ref = new SignalRef<Object>(value: value);
+  var ref = new SignalRef<Object>(value);
   for (var signal in signals) {
     signal.onChange((_) {
       if (!allAreHot) {
@@ -185,6 +178,8 @@ Signal<Object> _compute(List<Signal<Object>> signals, Function computation) {
       }
       if (allAreHot) {
         if (!hasRunInMicrotask) {
+          // defer update until the end of the current microtask queue,
+          // prevent more than one update.
           hasRunInMicrotask = true;
           scheduleMicrotask(() {
             hasRunInMicrotask = false;
@@ -193,7 +188,7 @@ Signal<Object> _compute(List<Signal<Object>> signals, Function computation) {
           });
         }
       }
-    }, ignoreFirst: true);
+    });
   }
   return ref;
 }
