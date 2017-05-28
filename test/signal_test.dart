@@ -10,57 +10,53 @@ void main() {
     test('is hot when it contains a non null value', () {
       var ref = new SignalRef(2);
 
-      expect(ref.isHot, true);
       expect(ref.value, 2);
     });
 
     test('is cold when it does not contain a non null value', () {
       var ref = new SignalRef();
 
-      expect(ref.isCold, true);
       expect(ref.value, isNull);
-    });
-
-    test('does not become hot when passed a null value', () {
-      var ref = new SignalRef();
-
-      expect(ref.isCold, true);
-
-      ref.value = null;
-
-      expect(ref.isCold, true);
     });
 
     test(
         'does not update when passed a value which is equal '
         'to the existing value', () {
-      var ref = new SignalRef();
-      var calledCount = 0;
+      return new FakeAsync().run((fakeAsync) {
+        var ref = new SignalRef();
+        var calledCount = 0;
+        ref.onValueUpdated.listen((_) {
+          calledCount++;
+        });
+        ref.value = 2;
+        fakeAsync.flushMicrotasks();
 
-      ref.onChange((_) {
-        calledCount++;
+        expect(calledCount, 1);
+
+        ref.value = 2;
+        fakeAsync.flushMicrotasks();
+
+        expect(calledCount, 1);
       });
-
-      ref.value = 2;
-
-      expect(calledCount, 1);
-
-      ref.value = 2;
-
-      expect(calledCount, 1);
     });
 
     test('notifies subscribers when the value changes', () {
-      var ref = new SignalRef();
-      var callCount = 0;
-      ref.onChange((_) {
-        callCount++;
+      return new FakeAsync().run((fakeAsync) {
+        var ref = new SignalRef();
+        var callCount = 0;
+        ref.onValueUpdated.listen((_) {
+          callCount++;
+        });
+
+        fakeAsync.flushMicrotasks();
+
+        expect(callCount, 0);
+        ref.value = 2;
+
+        fakeAsync.flushMicrotasks();
+
+        expect(callCount, 1);
       });
-
-      expect(callCount, 0);
-      ref.value = 2;
-
-      expect(callCount, 1);
     });
   });
 
@@ -85,7 +81,7 @@ void main() {
           (a, b, c) => a + b + c,
         );
         var calledCount = 0;
-        result.onChange((_) {
+        result.onValueUpdated.listen((_) {
           calledCount++;
         });
         refOne.value = 2;
